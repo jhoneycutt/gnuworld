@@ -1,6 +1,27 @@
-Running GNUWorld with Docker
-============================
+Running GNUWorld with podman (rootless)
+=======================================
 
+Install and configure podman
+----------------------------
+1. Install podman:
+
+    sudo apt install podman podman-compose uidmap passt
+
+2. mkdir -p ~/.config/containers/
+
+3. Tell podman where to resolve unqualified packages:
+
+    cat > ~/.config/containers/registries.conf <<'EOF'
+unqualified-search-registries = ["docker.io"]
+EOF
+
+2. Verify:
+
+    podman run hello-world
+
+
+Building
+--------
 1. Copy the example config files:
 
     cp bin/GNUWorld.example.conf bin/GNUWorld.conf
@@ -8,18 +29,45 @@ Running GNUWorld with Docker
     cp bin/ccontrol.example.conf bin/ccontrol.conf
     ... etc.
 
-2. Edit bin/GNUWorld.conf, At minimum, set the uplink address, port,
+2. Edit bin/GNUWorld.conf, at minimum, set the uplink address, port,
    password, and server name.
 
 3. Edit bin/cservice.conf and bin/ccontrol.conf (et al). Set the database
    connection to match the values in docker-compose.yml:
 
-4. Build and start:
+4. Build:
 
-    docker compose up --build --detach
+    podman compose build
 
    Note that only cservice and ccontrol are built by default. See the Modules
    section below.
+
+
+Running as a user systemd unit
+------------------------------
+1. sudo loginctl enable-linger jotun
+2. mkdir -p ~/.config/systemd/user/
+3. Create the systemd user unit:
+
+    cat > ~/.config/systemd/user/gnuworld.service <<'EOF'
+
+[Unit]
+Description=gnuworld compose stack
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/jotun/gnuworld
+ExecStart=/usr/bin/podman compose up --detach
+ExecStop=/usr/bin/podman compose down
+
+[Install]
+WantedBy=default.target
+EOF
+
+4. systemctl --user daemon-reload
+5. systemctl --user enable --now gnuworld.service
 
    On first start the entrypoint creates and initializes the cservice
    and ccontrol databases automatically. Subsequent starts skip this step.
@@ -28,7 +76,7 @@ Running GNUWorld with Docker
 
 5. Follow logs:
 
-    docker compose logs -f gnuworld
+    podman compose logs -f gnuworld
 
 
 Configuration
@@ -37,11 +85,11 @@ All bin/*.conf files are bind-mounted into the container read-only.
 The entrypoint copies them into the working directory at each startup,
 so any config change takes effect on the next restart, no rebuild needed:
 
-    docker compose restart gnuworld
+    podman compose restart gnuworld
 
 Changing source code requires a rebuild:
 
-    docker compose up --build --detach
+    podman compose up --build --detach
 
 Note: schema file changes in the image have no effect if the databases
 already exist.
@@ -59,7 +107,7 @@ entrypoint only handles cservice and ccontrol automatically. For other
 modules, see the corresponding doc/README.* file. You can add them to
 docker/entrypoint.sh or apply the schema manually:
 
-    docker compose exec db psql -U postgres -d <dbname> -f /path/to/schema.sql
+    podman compose exec db psql -U postgres -d <dbname> -f /path/to/schema.sql
 
 
 Data persistence
@@ -67,5 +115,5 @@ Data persistence
 PostgreSQL data is stored in the pgdata named volume. To wipe the databases
 and reinitialize from schema:
 
-    docker compose down --volumes
-    docker compose up --detach
+    podman compose down --volumes
+    podman compose up --detach
