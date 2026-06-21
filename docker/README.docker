@@ -1,0 +1,71 @@
+Running GNUWorld with Docker
+============================
+
+1. Copy the example config files:
+
+    cp bin/GNUWorld.example.conf bin/GNUWorld.conf
+    cp bin/cservice.example.conf bin/cservice.conf
+    cp bin/ccontrol.example.conf bin/ccontrol.conf
+    ... etc.
+
+2. Edit bin/GNUWorld.conf, At minimum, set the uplink address, port,
+   password, and server name.
+
+3. Edit bin/cservice.conf and bin/ccontrol.conf (et al). Set the database
+   connection to match the values in docker-compose.yml:
+
+4. Build and start:
+
+    docker compose up --build --detach
+
+   Note that only cservice and ccontrol are built by default. See the Modules
+   section below.
+
+   On first start the entrypoint creates and initializes the cservice
+   and ccontrol databases automatically. Subsequent starts skip this step.
+
+   To initialize other modules' databases, edit docker/entrypoint.sh.
+
+5. Follow logs:
+
+    docker compose logs -f gnuworld
+
+
+Configuration
+-------------
+All bin/*.conf files are bind-mounted into the container read-only.
+The entrypoint copies them into the working directory at each startup,
+so any config change takes effect on the next restart, no rebuild needed:
+
+    docker compose restart gnuworld
+
+Changing source code requires a rebuild:
+
+    docker compose up --build --detach
+
+Note: schema file changes in the image have no effect if the databases
+already exist.
+
+
+Modules
+-------
+Only cservice and ccontrol are compiled by default. To change that, edit
+Dockerfile. Which modules actually load is controlled by the "module =" lines
+in bin/GNUWorld.conf. After modifying the config, a restart (not a rebuild) is
+sufficient.
+
+Each module that requires a database needs it initialized separately. The
+entrypoint only handles cservice and ccontrol automatically. For other
+modules, see the corresponding doc/README.* file. You can add them to
+docker/entrypoint.sh or apply the schema manually:
+
+    docker compose exec db psql -U postgres -d <dbname> -f /path/to/schema.sql
+
+
+Data persistence
+----------------
+PostgreSQL data is stored in the pgdata named volume. To wipe the databases
+and reinitialize from schema:
+
+    docker compose down --volumes
+    docker compose up --detach
