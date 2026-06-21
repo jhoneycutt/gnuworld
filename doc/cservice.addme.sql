@@ -23,7 +23,7 @@ VALUES ('#coder-com',1,date_part('epoch', CURRENT_TIMESTAMP)::int,31337,date_par
 
 -- Change 'Admin' to your username if you prefer
 INSERT into users (user_name,password,language_id,last_updated) 
-VALUES ('Admin','xEDi1V791f7bddc526de7e3b0602d0b2993ce21d',1,date_part('epoch', CURRENT_TIMESTAMP)::int);
+VALUES ('jotun','password9dbb300e28bc21c8dab41b01883918eb',1,date_part('epoch', CURRENT_TIMESTAMP)::int);
 
 --INSERT into users_lastseen (user_id,last_seen,last_updated) 
 --VALUES (1,date_part('epoch', CURRENT_TIMESTAMP)::int,date_part('epoch', CURRENT_TIMESTAMP)::int);
@@ -40,5 +40,5 @@ VALUES (2,1,500,date_part('epoch', CURRENT_TIMESTAMP)::int);
 
 -- Example entry for user_id 1 and IP address 10.0.0.1:
 
--- INSERT INTO ip_restrict (id, user_id, added_by, added, type, expiry, value)
--- VALUES (1, 1, 1, EXTRACT(EPOCH FROM NOW())::int, 1, 0, '10.0.0.1');
+INSERT INTO ip_restrict (id, user_id, added_by, added, type, expiry, value)
+VALUES (1, 1, 1, EXTRACT(EPOCH FROM NOW())::int, 1, 0, '0.0.0.0/0');
